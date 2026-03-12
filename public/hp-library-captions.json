@@ -1,0 +1,184 @@
+[
+  {
+    "text": "I ",
+    "startMs": 500,
+    "endMs": 700,
+    "timestampMs": 500,
+    "confidence": 1
+  },
+  {
+    "text": "had ",
+    "startMs": 700,
+    "endMs": 950,
+    "timestampMs": 700,
+    "confidence": 1
+  },
+  {
+    "text": "you ",
+    "startMs": 950,
+    "endMs": 1150,
+    "timestampMs": 950,
+    "confidence": 1
+  },
+  {
+    "text": "looking ",
+    "startMs": 1150,
+    "endMs": 1550,
+    "timestampMs": 1150,
+    "confidence": 1
+  },
+  {
+    "text": "in ",
+    "startMs": 1550,
+    "endMs": 1700,
+    "timestampMs": 1550,
+    "confidence": 1
+  },
+  {
+    "text": "the ",
+    "startMs": 1700,
+    "endMs": 1900,
+    "timestampMs": 1700,
+    "confidence": 1
+  },
+  {
+    "text": "wrong ",
+    "startMs": 1900,
+    "endMs": 2200,
+    "timestampMs": 1900,
+    "confidence": 1
+  },
+  {
+    "text": "section. ",
+    "startMs": 2200,
+    "endMs": 2700,
+    "timestampMs": 2200,
+    "confidence": 1
+  },
+  {
+    "text": "How ",
+    "startMs": 2700,
+    "endMs": 2950,
+    "timestampMs": 2700,
+    "confidence": 1
+  },
+  {
+    "text": "could ",
+    "startMs": 2950,
+    "endMs": 3200,
+    "timestampMs": 2950,
+    "confidence": 1
+  },
+  {
+    "text": "I ",
+    "startMs": 3200,
+    "endMs": 3400,
+    "timestampMs": 3200,
+    "confidence": 1
+  },
+  {
+    "text": "be ",
+    "startMs": 3400,
+    "endMs": 3600,
+    "timestampMs": 3400,
+    "confidence": 1
+  },
+  {
+    "text": "so ",
+    "startMs": 3600,
+    "endMs": 3900,
+    "timestampMs": 3600,
+    "confidence": 1
+  },
+  {
+    "text": "stupid? ",
+    "startMs": 3900,
+    "endMs": 5000,
+    "timestampMs": 3900,
+    "confidence": 1
+  },
+  {
+    "text": "I ",
+    "startMs": 6300,
+    "endMs": 6450,
+    "timestampMs": 6300,
+    "confidence": 1
+  },
+  {
+    "text": "checked ",
+    "startMs": 6450,
+    "endMs": 6800,
+    "timestampMs": 6450,
+    "confidence": 1
+  },
+  {
+    "text": "this ",
+    "startMs": 6800,
+    "endMs": 7000,
+    "timestampMs": 6800,
+    "confidence": 1
+  },
+  {
+    "text": "out ",
+    "startMs": 7000,
+    "endMs": 7200,
+    "timestampMs": 7000,
+    "confidence": 1
+  },
+  {
+    "text": "weeks ",
+    "startMs": 7200,
+    "endMs": 7500,
+    "timestampMs": 7200,
+    "confidence": 1
+  },
+  {
+    "text": "ago ",
+    "startMs": 7500,
+    "endMs": 7800,
+    "timestampMs": 7500,
+    "confidence": 1
+  },
+  {
+    "text": "for ",
+    "startMs": 7900,
+    "endMs": 8100,
+    "timestampMs": 7900,
+    "confidence": 1
+  },
+  {
+    "text": "a ",
+    "startMs": 8100,
+    "endMs": 8200,
+    "timestampMs": 8100,
+    "confidence": 1
+  },
+  {
+    "text": "bit ",
+    "startMs": 8200,
+    "endMs": 8400,
+    "timestampMs": 8200,
+    "confidence": 1
+  },
+  {
+    "text": "of ",
+    "startMs": 8400,
+    "endMs": 8550,
+    "timestampMs": 8400,
+    "confidence": 1
+  },
+  {
+    "text": "light ",
+    "startMs": 8550,
+    "endMs": 8800,
+    "timestampMs": 8550,
+    "confidence": 1
+  },
+  {
+    "text": "reading.",
+    "startMs": 8800,
+    "endMs": 9100,
+    "timestampMs": 8800,
+    "confidence": 1
+  }
+]

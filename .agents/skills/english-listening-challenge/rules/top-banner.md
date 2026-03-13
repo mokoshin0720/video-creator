@@ -110,7 +110,7 @@ style={{ fontFamily }}
 
 ## 注意点
 
-- バナーは動画全体を通して常に表示する（Sequence で囲まない、または全体の長さで囲む）
+- バナーはエンディング開始（雫の落下開始）まで表示する（`<Sequence from={0} durationInFrames={endingStartFrame}>` で囲む）
 - Z-indexを高く設定して、字幕やその他の要素の上に表示する
 - YouTube Shorts のUIと被らないよう、上端から180pxの余白を取る
 - テキストは props で変更可能にしておくと汎用性が高い

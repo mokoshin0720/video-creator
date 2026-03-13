@@ -15,7 +15,7 @@ metadata:
 
 ## タイムラインの構成
 
-動画は4つのパートで構成される（間にポーズは入れない、パート間でSEを再生）:
+動画は4つのパート + エンディングで構成される（間にポーズは入れない、パート間でSEを再生）:
 
 ```
 [上部バナー: 常に表示] ─────────────────────────────────
@@ -38,7 +38,12 @@ metadata:
 │                         ↓ SE                          │
 │  パート4: 通常速度リプレイ                               │
 │  ├─ チャレンジ動画を通常速度で1回再生                    │
-│  └─ 英語字幕（ハイライト付き）+ 日本語翻訳               │
+│  ├─ 英語字幕（ハイライト付き）+ 日本語翻訳               │
+│  └─ 終了0.8秒前から黄色の雫が落下開始（パート4に重なる）  │
+│                                                       │
+│  エンディング: 画面展開 + CTA音声                        │
+│  ├─ パート4終了と同時に雫が中央到達→円形展開（0.5秒）    │
+│  └─ 画面全体が黄色 → CTA音声再生（約2.57秒）            │
 │                                                       │
 ─────────────────────────────────────────────────────────
 ```
@@ -52,7 +57,9 @@ const answerDurationSec = hookEndSec - answerStartSec;
 const replayPlaybackRate = 0.75;
 const wordOrderingDurationSec = (challengeDurationSec / replayPlaybackRate) * 3;
 const finalReplayDurationSec = challengeDurationSec;
-const totalDurationSec = challengeDurationSec + transitionBufferSec + answerDurationSec + transitionBufferSec + wordOrderingDurationSec + finalReplayDurationSec;
+const endingDurationSec = (ENDING_DURATION_FRAMES - DROP_FRAMES) / 30; // 展開フェーズのみ（落下はパート4と重なる）
+const endingCtaDurationSec = 2.57; // CTA音声
+const totalDurationSec = challengeDurationSec + transitionBufferSec + answerDurationSec + transitionBufferSec + wordOrderingDurationSec + finalReplayDurationSec + endingDurationSec + endingCtaDurationSec;
 ```
 
 ## チャレンジ動画とアンサー動画の関係（重要）

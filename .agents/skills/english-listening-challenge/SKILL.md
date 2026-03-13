@@ -21,15 +21,21 @@ metadata:
 
 画面上部には常に「リアル日常英語　聞き取れる？」のバナーを表示する。
 
+## 動画制作の流れ
+
+YouTube URLから1本の動画を完成させるには [rules/video-production-pipeline.md](rules/video-production-pipeline.md) の手順に従う。
+
 ## 詳細ルール
 
 各パートの詳細な実装ルールは以下のファイルを参照:
 
+- [rules/video-production-pipeline.md](rules/video-production-pipeline.md) - **YouTube URLから完成までの全手順**（ダウンロード→文字起こし→区間選定→翻訳→レンダリング）
 - [rules/video-structure.md](rules/video-structure.md) - 動画全体の構成とタイムライン
 - [rules/scrambled-subtitles.md](rules/scrambled-subtitles.md) - チャレンジ動画の字幕（聞き取れる単語 + スクランブル）
 - [rules/top-banner.md](rules/top-banner.md) - 上部バナーのデザインと実装
 - [rules/subtitle-display.md](rules/subtitle-display.md) - アンサー動画の字幕表示（センテンス単位・単語ハイライト・日本語翻訳）
 - [rules/word-ordering-challenge.md](rules/word-ordering-challenge.md) - パート3の単語並べ替えチャレンジ（0.75倍速×3回リプレイ・下線スロット・単語バンク）
+- [rules/ending-transition.md](rules/ending-transition.md) - エンディングアニメーション（雫落下→円形展開→CTA画面）
 - [rules/props-schema.md](rules/props-schema.md) - コンポジションのプロパティスキーマ
 
 ## 技術的な前提

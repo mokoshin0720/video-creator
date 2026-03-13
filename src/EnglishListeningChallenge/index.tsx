@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import {
   AbsoluteFill,
   Audio,
+  Img,
   OffthreadVideo,
   Sequence,
   staticFile,
@@ -17,8 +18,9 @@ import { ScrambledSubtitle } from "./ScrambledSubtitle";
 import { SubtitleDisplay, groupBySentence } from "./SubtitleDisplay";
 import { WordOrderingChallenge } from "./WordOrderingChallenge";
 import { BlankSlots } from "./BlankSlots";
+import { EndingTransition, ENDING_DURATION_FRAMES, DROP_FRAMES } from "./EndingTransition";
 
-loadFont();
+const { fontFamily } = loadFont();
 
 export const calculateMetadata: CalculateMetadataFunction<
   EnglishListeningChallengeProps
@@ -32,7 +34,9 @@ export const calculateMetadata: CalculateMetadataFunction<
   const replayPlaybackRate = 0.75;
   const wordOrderingDurationSec = (challengeDurationSec / replayPlaybackRate) * 3;
   const finalReplayDurationSec = challengeDurationSec;
-  const totalDurationSec = challengeDurationSec + transitionBufferSec + answerDurationSec + transitionBufferSec + wordOrderingDurationSec + finalReplayDurationSec;
+  const endingDurationSec = (ENDING_DURATION_FRAMES - DROP_FRAMES) / 30;
+  const endingCtaDurationSec = 2.57;
+  const totalDurationSec = challengeDurationSec + transitionBufferSec + answerDurationSec + transitionBufferSec + wordOrderingDurationSec + finalReplayDurationSec + endingDurationSec + endingCtaDurationSec;
 
   return {
     durationInFrames: Math.ceil(totalDurationSec * 30),
@@ -64,6 +68,11 @@ export const EnglishListeningChallenge: React.FC<
 
   // パート4: 通常速度で再生 + 日本語字幕
   const finalReplayStartFrame = wordOrderingStartFrame + wordOrderingDurationFrames;
+
+  // エンディング: 雫の落下はパート4終了前から開始し、終了と同時に中央到達→展開
+  const endingStartFrame = finalReplayStartFrame + challengeDurationFrames - DROP_FRAMES;
+  const endingCtaStartFrame = endingStartFrame + ENDING_DURATION_FRAMES;
+  const endingCtaDurationFrames = Math.ceil(2.57 * fps);
 
   const captions = props.captions ?? [];
 
@@ -155,8 +164,10 @@ export const EnglishListeningChallenge: React.FC<
 
   return (
     <AbsoluteFill style={{ backgroundColor: props.backgroundColor }}>
-      {/* 上部バナー: 常に表示 */}
-      <TopBanner text={props.bannerText} />
+      {/* 上部バナー: エンディング開始まで表示 */}
+      <Sequence from={0} durationInFrames={endingStartFrame}>
+        <TopBanner text={props.bannerText} />
+      </Sequence>
 
       {/* パート1: チャレンジ動画（+ 0.5秒バッファで再生継続、音量フェードアウト） */}
       <Sequence from={0} durationInFrames={challengeDurationFrames + transitionBufferFrames}>
@@ -332,6 +343,117 @@ export const EnglishListeningChallenge: React.FC<
           translations={[lastSentenceTranslation]}
           offsetMs={hookStartMs}
         />
+      </Sequence>
+
+      {/* エンディング: 黄色の雫が落下 → 画面全体に展開 */}
+      <Sequence from={endingStartFrame} durationInFrames={ENDING_DURATION_FRAMES}>
+        <EndingTransition highlightColor={props.highlightColor} />
+      </Sequence>
+
+      {/* エンディングCTA: 黄色背景 + アイコン + App Storeバッジ + 音声 */}
+      <Sequence from={endingCtaStartFrame} durationInFrames={endingCtaDurationFrames}>
+        <AbsoluteFill
+          style={{
+            backgroundColor: props.highlightColor,
+            justifyContent: "center",
+            alignItems: "center",
+            gap: 60,
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              lineHeight: 1.3,
+            }}
+          >
+            <span
+              style={{
+                fontSize: 85,
+                fontWeight: 900,
+                fontFamily,
+                whiteSpace: "nowrap",
+                position: "relative",
+              }}
+            >
+              {/* 外側: メインカラーのストローク */}
+              <span
+                aria-hidden
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  color: "#333",
+                  WebkitTextStroke: "14px #333",
+                  paintOrder: "stroke fill",
+                }}
+              >
+                推し動画で英語を学ぶなら
+              </span>
+              {/* 中間: 白のストローク */}
+              <span
+                aria-hidden
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  color: "#333",
+                  WebkitTextStroke: "6px white",
+                  paintOrder: "stroke fill",
+                }}
+              >
+                推し動画で英語を学ぶなら
+              </span>
+              {/* 前面: 文字本体 */}
+              <span style={{ position: "relative", color: "#333" }}>
+                推し動画で英語を学ぶなら
+              </span>
+            </span>
+            <span
+              style={{
+                fontSize: 190,
+                fontWeight: 900,
+                position: "relative",
+              }}
+            >
+              <span
+                aria-hidden
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  color: "#333",
+                  WebkitTextStroke: "18px #333",
+                  paintOrder: "stroke fill",
+                }}
+              >
+                Favorite
+              </span>
+              <span
+                aria-hidden
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  color: "#333",
+                  WebkitTextStroke: "8px white",
+                  paintOrder: "stroke fill",
+                }}
+              >
+                Favorite
+              </span>
+              <span style={{ position: "relative", color: "#333" }}>
+                Favorite
+              </span>
+            </span>
+          </div>
+          <Img
+            src={staticFile("app-icon.png")}
+            style={{ width: 300, height: 300, borderRadius: 60 }}
+          />
+          <Img
+            src={staticFile("app-store-badge.png")}
+            style={{ width: 400, height: "auto" }}
+          />
+        </AbsoluteFill>
+        <Audio src={staticFile("ending-cta.mp3")} />
       </Sequence>
     </AbsoluteFill>
   );

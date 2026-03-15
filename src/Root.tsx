@@ -36,19 +36,23 @@ export const RemotionRoot: React.FC = () => {
         height={1920}
         schema={englishListeningChallengeSchema}
         defaultProps={{
-          audioFileName: "hp-library.mp3",
-          videoFileName: "hp-library-video.mp4",
-          captionsFileName: "hp-library-captions.json",
-          hookStartSec: 6.3,
-          hookEndSec: 9.1,
-          hookText: "I checked this out weeks ago for a bit of light reading.",
+          audioFileName: "trump-ohio-audio.mp3",
+          videoFileName: "trump-ohio-video.mp4",
+          captionsFileName: "trump-ohio-captions.json",
+          hookStartSec: 70.0,
+          hookEndSec: 74.96,
+          hookText:
+            "I figured we'd be hit a little bit, but uh we were hit probably less than I thought",
           hookRevealWords: 3,
-          answerStartSec: 0,
+          answerStartSec: 57.84,
           bannerText: "リアル日常英語\n聞き取れる？",
           translations: [
-            "間違った場所を探させてたわ。",
-            "なんて馬鹿だったの？",
-            "何週間も前にちょっとした軽い読み物として借りたのよ。",
+            "47年もの間、彼らに苦しめられた。我々だけじゃない、全世界がだ。",
+            "そして我々はやるべきことをやっている。",
+            "だから、ちょっとした遠征が必要だったんだ。",
+            "でも、うまくいっている。",
+            "市場も持ちこたえている。",
+            "多少の打撃は覚悟していたが、思ったより影響は少なかった。",
           ],
           backgroundColor: "#000000",
           highlightColor: "#FFD700",

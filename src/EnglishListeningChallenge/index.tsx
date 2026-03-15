@@ -3,9 +3,11 @@ import {
   AbsoluteFill,
   Audio,
   Img,
+  interpolate,
   OffthreadVideo,
   Sequence,
   staticFile,
+  useCurrentFrame,
   useVideoConfig,
 } from "remotion";
 import type { CalculateMetadataFunction } from "remotion";
@@ -51,6 +53,7 @@ export const EnglishListeningChallenge: React.FC<
   EnglishListeningChallengeProps & { captions?: Caption[] }
 > = (props) => {
   const { fps } = useVideoConfig();
+  const frame = useCurrentFrame();
 
   const challengeDurationSec = props.hookEndSec - props.hookStartSec;
   const challengeDurationFrames = Math.ceil(challengeDurationSec * fps);
@@ -162,6 +165,56 @@ export const EnglishListeningChallenge: React.FC<
     ? lastSentence.words.map((w) => w.text.trim()).filter((w) => w.length > 0)
     : [];
 
+  // チャレンジ→アンサーのズームトランジション（勢いのあるズーム）
+  // パート1終了時: 1.0 → 4.0 にズームイン（ease-in: 加速しながら飛び込む）
+  const part1ZoomProgress = interpolate(
+    frame,
+    [challengeDurationFrames, challengeDurationFrames + transitionBufferFrames],
+    [0, 1],
+    { extrapolateLeft: "clamp", extrapolateRight: "clamp" },
+  );
+  const p1 = part1ZoomProgress;
+  const part1Eased = p1 * p1 * p1 * p1 * p1; // quintic ease-in（5乗）
+  const part1Scale = 1 + part1Eased * 5; // 1.0 → 6.0
+  const part1Blur = part1Eased * 16; // ピーク時にモーションブラー
+
+  // パート2開始時: 6.0 → 1.0 にズームアウト（ease-out: 減速しながら着地）
+  const part2ZoomProgress = interpolate(
+    frame,
+    [answerStartFrame, answerStartFrame + transitionBufferFrames],
+    [0, 1],
+    { extrapolateLeft: "clamp", extrapolateRight: "clamp" },
+  );
+  const p2 = 1 - part2ZoomProgress;
+  const part2Eased = 1 - p2 * p2 * p2 * p2 * p2; // quintic ease-out（5乗）
+  const part2Scale = 6 - part2Eased * 5; // 6.0 → 1.0
+  const part2Blur = (1 - part2Eased) * 16; // 着地に向けてブラー解除
+
+  // アンサー→単語並べ替えチャレンジのズームトランジション
+  // パート2終了時: 1.0 → 6.0 にズームイン
+  const part2OutZoomProgress = interpolate(
+    frame,
+    [wordOrderingStartFrame - transitionBufferFrames, wordOrderingStartFrame],
+    [0, 1],
+    { extrapolateLeft: "clamp", extrapolateRight: "clamp" },
+  );
+  const p2o = part2OutZoomProgress;
+  const part2OutEased = p2o * p2o * p2o * p2o * p2o;
+  const part2OutScale = 1 + part2OutEased * 5;
+  const part2OutBlur = part2OutEased * 16;
+
+  // パート3開始時: 6.0 → 1.0 にズームアウト
+  const part3InZoomProgress = interpolate(
+    frame,
+    [wordOrderingStartFrame, wordOrderingStartFrame + transitionBufferFrames],
+    [0, 1],
+    { extrapolateLeft: "clamp", extrapolateRight: "clamp" },
+  );
+  const p3i = 1 - part3InZoomProgress;
+  const part3InEased = 1 - p3i * p3i * p3i * p3i * p3i;
+  const part3InScale = 6 - part3InEased * 5;
+  const part3InBlur = (1 - part3InEased) * 16;
+
   return (
     <AbsoluteFill style={{ backgroundColor: props.backgroundColor }}>
       {/* 上部バナー: エンディング開始まで表示 */}
@@ -171,48 +224,50 @@ export const EnglishListeningChallenge: React.FC<
 
       {/* パート1: チャレンジ動画（+ 0.5秒バッファで再生継続、音量フェードアウト） */}
       <Sequence from={0} durationInFrames={challengeDurationFrames + transitionBufferFrames}>
-        <AbsoluteFill
-          style={{
-            justifyContent: "center",
-            alignItems: "center",
-          }}
-        >
-          <OffthreadVideo
-            src={videoSrc}
-            startFrom={Math.round(props.hookStartSec * fps)}
-            volume={(f) => {
-              if (f < challengeDurationFrames) return 1;
-              const fadeProgress = (f - challengeDurationFrames) / transitionBufferFrames;
-              return Math.max(0, 1 - fadeProgress);
-            }}
+        <AbsoluteFill style={{ transform: `scale(${part1Scale})`, filter: part1Blur > 0.1 ? `blur(${part1Blur}px)` : undefined }}>
+          <AbsoluteFill
             style={{
-              width: 1080,
-              height: "auto",
+              justifyContent: "center",
+              alignItems: "center",
             }}
-          />
-        </AbsoluteFill>
-
-        {/* 聞き取れる部分: 通常字幕（ハイライト付き） */}
-        {revealDurationFrames > 0 && (
-          <Sequence from={0} durationInFrames={revealDurationFrames}>
-            <HookRevealSubtitle
-              captions={revealCaptions}
-              offsetMs={hookStartMs}
-              highlightColor={props.highlightColor}
-              subtitleTop={subtitleTop}
+          >
+            <OffthreadVideo
+              src={videoSrc}
+              startFrom={Math.round(props.hookStartSec * fps)}
+              volume={(f) => {
+                if (f < challengeDurationFrames) return 1;
+                const fadeProgress = (f - challengeDurationFrames) / transitionBufferFrames;
+                return Math.max(0, 1 - fadeProgress);
+              }}
+              style={{
+                width: 1080,
+                height: "auto",
+              }}
             />
-          </Sequence>
-        )}
+          </AbsoluteFill>
 
-        {/* 聞き取れない部分: スクランブル記号 */}
-        {scrambleDurationFrames > 0 && scrambleText.length > 0 && (
-          <Sequence from={revealDurationFrames} durationInFrames={scrambleDurationFrames}>
-            <ScrambledSubtitle
+          {/* 聞き取れる部分: 通常字幕（ハイライト付き） */}
+          {revealDurationFrames > 0 && (
+            <Sequence from={0} durationInFrames={revealDurationFrames}>
+              <HookRevealSubtitle
+                captions={revealCaptions}
+                offsetMs={hookStartMs}
+                highlightColor={props.highlightColor}
+                subtitleTop={subtitleTop}
+              />
+            </Sequence>
+          )}
+
+          {/* 聞き取れない部分: スクランブル記号 */}
+          {scrambleDurationFrames > 0 && scrambleText.length > 0 && (
+            <Sequence from={revealDurationFrames} durationInFrames={scrambleDurationFrames}>
+              <ScrambledSubtitle
               text={scrambleText}
               subtitleTop={subtitleTop}
             />
-          </Sequence>
-        )}
+            </Sequence>
+          )}
+        </AbsoluteFill>
       </Sequence>
 
       {/* チャレンジ→アンサーの切り替わりSE（切り替わりをまたいで再生） */}
@@ -222,45 +277,47 @@ export const EnglishListeningChallenge: React.FC<
 
       {/* パート2: アンサー動画（+ 0.5秒バッファで再生継続、音量フェードアウト） */}
       <Sequence from={answerStartFrame} durationInFrames={answerDurationFrames + transitionBufferFrames}>
-        <AbsoluteFill
-          style={{
-            justifyContent: "center",
-            alignItems: "center",
-          }}
-        >
-          <OffthreadVideo
-            src={videoSrc}
-            startFrom={Math.round(props.answerStartSec * fps)}
-            volume={(f) => {
-              if (f < answerDurationFrames) return 1;
-              const fadeProgress = (f - answerDurationFrames) / transitionBufferFrames;
-              return Math.max(0, 1 - fadeProgress);
-            }}
+        <AbsoluteFill style={{ transform: `scale(${part2Scale * part2OutScale})`, filter: (part2Blur > 0.1 || part2OutBlur > 0.1) ? `blur(${Math.max(part2Blur, part2OutBlur)}px)` : undefined }}>
+          <AbsoluteFill
             style={{
-              width: 1080,
-              height: "auto",
+              justifyContent: "center",
+              alignItems: "center",
             }}
+          >
+            <OffthreadVideo
+              src={videoSrc}
+              startFrom={Math.round(props.answerStartSec * fps)}
+              volume={(f) => {
+                if (f < answerDurationFrames) return 1;
+                const fadeProgress = (f - answerDurationFrames) / transitionBufferFrames;
+                return Math.max(0, 1 - fadeProgress);
+              }}
+              style={{
+                width: 1080,
+                height: "auto",
+              }}
+            />
+          </AbsoluteFill>
+
+          {/* 最後のセンテンス以外は通常のSubtitleDisplay */}
+          <SubtitleDisplay
+            captions={answerCaptionsExceptLast}
+            highlightColor={props.highlightColor}
+            subtitleTop={subtitleTop}
+            translations={translationsExceptLast}
+            offsetMs={props.answerStartSec * 1000}
           />
-        </AbsoluteFill>
 
-        {/* 最後のセンテンス以外は通常のSubtitleDisplay */}
-        <SubtitleDisplay
-          captions={answerCaptionsExceptLast}
-          highlightColor={props.highlightColor}
-          subtitleTop={subtitleTop}
-          translations={translationsExceptLast}
-          offsetMs={props.answerStartSec * 1000}
-        />
-
-        {/* 最後のセンテンス（= チャレンジ文）は下線スロットのみ表示 */}
-        {lastSentence && lastSentenceDurationFrames > 0 && (
-          <Sequence from={lastSentenceStartFrame} durationInFrames={lastSentenceDurationFrames}>
-            <BlankSlots
-              words={lastSentenceWords}
+          {/* 最後のセンテンス（= チャレンジ文）は下線スロットのみ表示 */}
+          {lastSentence && lastSentenceDurationFrames > 0 && (
+            <Sequence from={lastSentenceStartFrame} durationInFrames={lastSentenceDurationFrames}>
+              <BlankSlots
+                words={lastSentenceWords}
               subtitleTop={subtitleTop}
             />
-          </Sequence>
-        )}
+            </Sequence>
+          )}
+        </AbsoluteFill>
       </Sequence>
 
       {/* アンサー→単語並べ替えチャレンジの切り替わりSE */}
@@ -270,52 +327,49 @@ export const EnglishListeningChallenge: React.FC<
 
       {/* パート3: 単語並べ替えチャレンジ（チャレンジ動画を3回リプレイ） */}
       <Sequence from={wordOrderingStartFrame} durationInFrames={wordOrderingDurationFrames}>
-        {/* 3回のリプレイ動画（0.75倍速） */}
-        {[0, 1, 2].map((replayIndex) => (
-          <Sequence
-            key={`replay-${replayIndex}`}
-            from={replayIndex * singleReplayFrames}
-            durationInFrames={singleReplayFrames}
-          >
-            <AbsoluteFill
-              style={{
-                justifyContent: "center",
-                alignItems: "center",
-              }}
+        <AbsoluteFill style={{ transform: `scale(${part3InScale})`, filter: part3InBlur > 0.1 ? `blur(${part3InBlur}px)` : undefined }}>
+          {/* 3回のリプレイ動画（0.75倍速） */}
+          {[0, 1, 2].map((replayIndex) => (
+            <Sequence
+              key={`replay-${replayIndex}`}
+              from={replayIndex * singleReplayFrames}
+              durationInFrames={singleReplayFrames}
             >
-              <OffthreadVideo
-                src={videoSrc}
-                startFrom={Math.round(props.hookStartSec * fps)}
-                playbackRate={replayPlaybackRate}
+              <AbsoluteFill
                 style={{
-                  width: 1080,
-                  height: "auto",
+                  justifyContent: "center",
+                  alignItems: "center",
                 }}
-              />
-            </AbsoluteFill>
-          </Sequence>
-        ))}
+              >
+                <OffthreadVideo
+                  src={videoSrc}
+                  startFrom={Math.round(props.hookStartSec * fps)}
+                  playbackRate={replayPlaybackRate}
+                  style={{
+                    width: 1080,
+                    height: "auto",
+                  }}
+                />
+              </AbsoluteFill>
+            </Sequence>
+          ))}
 
-        {/* 単語並べ替えオーバーレイ（3回のリプレイ全体にわたって表示） */}
-        <WordOrderingChallenge
-          words={challengeWords}
-          wordStartFrames={challengeWordStartFrames}
-          totalDurationFrames={wordOrderingDurationFrames}
-          singleReplayFrames={singleReplayFrames}
-          highlightColor={props.highlightColor}
-          subtitleTop={subtitleTop}
-          seed="part3-word-ordering"
-        />
+          {/* 単語並べ替えオーバーレイ（3回のリプレイ全体にわたって表示） */}
+          <WordOrderingChallenge
+            words={challengeWords}
+            wordStartFrames={challengeWordStartFrames}
+            totalDurationFrames={wordOrderingDurationFrames}
+            singleReplayFrames={singleReplayFrames}
+            highlightColor={props.highlightColor}
+            subtitleTop={subtitleTop}
+            seed="part3-word-ordering"
+          />
+        </AbsoluteFill>
       </Sequence>
 
       {/* 全単語配置完了のレベルアップSE */}
       <Sequence from={wordOrderingStartFrame + lastWordPlacementFrame} durationInFrames={Math.ceil(1.72 * fps)}>
         <Audio src={staticFile("level-up.mp3")} volume={0.8} />
-      </Sequence>
-
-      {/* 並べ替え→通常再生の切り替わりSE */}
-      <Sequence from={finalReplayStartFrame - Math.round(0.5 * fps)} durationInFrames={Math.ceil(1.03 * fps)}>
-        <Audio src={staticFile("whoosh.mp3")} volume={0.8} />
       </Sequence>
 
       {/* パート4: チャレンジ部分を通常速度で再生 + 日本語字幕 */}

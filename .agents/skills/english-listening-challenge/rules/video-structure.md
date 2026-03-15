@@ -144,7 +144,7 @@ ffmpeg -y -i input.mp3 -filter:a "volume=0.8" output.mp3
 
 ## パート間の切り替わりSE
 
-各パート間でウーシュSEを再生する。
+パート1→パート2、パート2→パート3 の切り替わりでウーシュSEを再生する。
 
 - **SEファイル**: `public/whoosh.mp3`（約1.03秒）
 - **音量**: `volume={0.8}`
@@ -166,6 +166,7 @@ import { Audio } from "remotion";
 **重要**:
 - SEはパート切り替わりの前後にまたがって再生する（切り替わり後に再生するのではない）
 - Sequence の `durationInFrames` はSEファイルの実際の長さ以上にする。短くすると音が途切れる
+- **パート3→パート4 の切り替わりではウーシュSEを再生しない**（レベルアップSEのみで繋ぐ）
 
 ## トランジションバッファ（重要）
 
@@ -212,6 +213,71 @@ const transitionBufferFrames = Math.round(0.5 * fps);
 - フェードアウトは音量のみ。映像はそのまま再生する
 - `endAt` を指定すると動画がそこで止まるため、バッファ付きのパートでは `endAt` を使わない
 - パート3→パート4、パート4の終了にはバッファを入れない（即座に切り替わる）
+
+## ズームトランジション（重要）
+
+トランジションバッファ中は、**ズームトランジション**で勢いのある画面切り替えを行う。
+パート1→パート2、パート2→パート3 の切り替わりで使用する。
+
+### 仕様
+
+- **スケール**: 1.0 → 6.0（ズームイン）/ 6.0 → 1.0（ズームアウト）
+- **イージング**: quintic（5乗）— ease-in で加速しながらズームイン、ease-out で減速しながらズームアウト
+- **モーションブラー**: ピーク時に `blur(16px)` を付与し、着地に向けて解除
+- **対象**: 動画 + 字幕をまとめてズームする（`AbsoluteFill` で囲んで `transform: scale()` + `filter: blur()` を適用）
+
+### 計算方法
+
+```tsx
+import { interpolate, useCurrentFrame } from "remotion";
+
+const frame = useCurrentFrame();
+
+// 前のパート終了時: ズームイン（ease-in quintic）
+const zoomInProgress = interpolate(
+  frame,
+  [transitionStart, transitionStart + transitionBufferFrames],
+  [0, 1],
+  { extrapolateLeft: "clamp", extrapolateRight: "clamp" },
+);
+const pIn = zoomInProgress;
+const zoomInEased = pIn * pIn * pIn * pIn * pIn; // quintic ease-in
+const zoomInScale = 1 + zoomInEased * 5; // 1.0 → 6.0
+const zoomInBlur = zoomInEased * 16;
+
+// 次のパート開始時: ズームアウト（ease-out quintic）
+const zoomOutProgress = interpolate(
+  frame,
+  [transitionEnd, transitionEnd + transitionBufferFrames],
+  [0, 1],
+  { extrapolateLeft: "clamp", extrapolateRight: "clamp" },
+);
+const pOut = 1 - zoomOutProgress;
+const zoomOutEased = 1 - pOut * pOut * pOut * pOut * pOut; // quintic ease-out
+const zoomOutScale = 6 - zoomOutEased * 5; // 6.0 → 1.0
+const zoomOutBlur = (1 - zoomOutEased) * 16;
+```
+
+### 適用方法
+
+各パートの Sequence 内のコンテンツ全体を `AbsoluteFill` で囲み、`transform` と `filter` を適用する。
+
+```tsx
+<Sequence from={...} durationInFrames={...}>
+  <AbsoluteFill style={{
+    transform: `scale(${scale})`,
+    filter: blur > 0.1 ? `blur(${blur}px)` : undefined,
+  }}>
+    {/* 動画 + 字幕 */}
+  </AbsoluteFill>
+</Sequence>
+```
+
+**重要**:
+- パートが入口と出口の両方でズームする場合（パート2など）、スケールは掛け算で合成する: `scale(${inScale * outScale})`
+- ブラーは `Math.max(inBlur, outBlur)` で大きい方を採用する
+- CSS animation は使わない。すべて `useCurrentFrame()` + `interpolate()` でフレームベースで計算する
+- パート3→パート4、パート4→エンディングにはズームトランジションを適用しない
 
 ## 動画・音声の扱い
 
